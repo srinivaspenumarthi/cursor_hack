@@ -284,7 +284,7 @@ def unfiltered_robustness(start, end) -> dict:
 # figures
 # ---------------------------------------------------------------------------
 def fig_equity(bts: dict, path: Path, oos_bts: dict | None = None):
-    fig, ax = plt.subplots(figsize=(7.2, 2.5))
+    fig, ax = plt.subplots(figsize=(7.2, 2.2))
     def eq(s, start=1.0): return start * (1 + s).cumprod()
     ax.plot(eq(bts["always_on"]["gross"]), color=C_GROSS, lw=0.9, ls="--", label="always on, gross")
     ax.plot(eq(bts["always_on"]["net"]), color=C_CONST, lw=1.1, label="always on, net")
@@ -305,7 +305,7 @@ def fig_equity(bts: dict, path: Path, oos_bts: dict | None = None):
 
 
 def fig_vix_quintiles(tbl: pd.DataFrame, legs: pd.DataFrame, path: Path):
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.4))
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.2))
     x = np.arange(len(tbl))
     axes[0].bar(x, tbl["mean_bps"], 0.6, yerr=1.96 * tbl["se_bps"], color=C_TIMED, capsize=3)
     axes[0].axhline(DOLLARS_TRADED_PER_DAY * C_BASE_BPS, color=C_OOS, lw=1, ls="--")

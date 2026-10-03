@@ -26,19 +26,20 @@ PDF = HERE / "quant_note.pdf"
 CSS = """
 @page { size: Letter; margin: 1in; }
 html { font-size: 11pt; }
-body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; line-height: 1.25; color: #111; margin: 0; }
+body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; line-height: 1.2; color: #111; margin: 0; }
 h1 { font-size: 20pt; margin: 0 0 2pt 0; letter-spacing: -0.01em; }
 h2 { font-size: 12.5pt; margin: 9pt 0 3pt 0; border-bottom: 0.6pt solid #999; padding-bottom: 1pt; }
 h3 { font-size: 11pt; margin: 8pt 0 3pt 0; font-style: italic; }
 .title h2 { font-size: 12pt; border: none; font-weight: normal; color: #333; margin: 0 0 5pt 0; }
 .meta { font-size: 9pt; color: #444; margin: 0 0 6pt 0; }
-p { margin: 0 0 6pt 0; text-align: justify; }
+p { margin: 0 0 5pt 0; text-align: justify; }
 table { border-collapse: collapse; width: 100%; font-size: 8.6pt; margin: 4pt 0 6pt 0; font-family: Helvetica, Arial, sans-serif; }
+tr { page-break-inside: avoid; }
 th, td { border-bottom: 0.4pt solid #bbb; padding: 1.6pt 3pt; text-align: right; vertical-align: top; }
 th:first-child, td:first-child { text-align: left; }
 th { border-bottom: 0.8pt solid #333; font-weight: 600; text-align: right; }
 th:first-child { text-align: left; }
-img.full { width: 94%; display: block; margin: 3pt auto 1pt auto; }
+img.full { width: 90%; display: block; margin: 3pt auto 1pt auto; }
 .row { display: flex; gap: 8pt; justify-content: center; }
 img.half { width: 48%; display: block; margin: 4pt 0 2pt 0; }
 .cap { font-size: 8.6pt; color: #333; margin: 0 0 7pt 0; text-align: left; }
