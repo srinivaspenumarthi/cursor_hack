@@ -139,7 +139,7 @@ def write_report(is_res: dict, oos_res: dict | None, out_dir: Path) -> None:
             md.append(f"\nOOS mean next-day return binned on the IN-SAMPLE VIX quintile edges ({', '.join(f'{x:.1f}' for x in e[1:-1])}):\n")
             md.append("| Bin | VIX range | " + " | ".join(f"{LABEL[u]} mean ± 95% CI (n)" for u in ("st_rev", "big_rev")) + " |\n|---|---|---|---|")
             for a, b in zip(oos_res["prediction_2_quintiles_in_sample_edges"]["st_rev"], oos_res["prediction_2_quintiles_in_sample_edges"]["big_rev"]):
-                if a["n_days"] == 0:
+                if a["n_days"] < 10:
                     continue
                 md.append(f"| Q{a['vix_quintile']} | {a['vix_lo']:.1f}–{a['vix_hi']:.1f} | {a['mean_bps']:.2f} ± {1.96*a['se_bps']:.2f} ({a['n_days']}) | {b['mean_bps']:.2f} ± {1.96*b['se_bps']:.2f} ({b['n_days']}) |")
         md.append("\nPost-hoc rules (same held-out days):\n")
