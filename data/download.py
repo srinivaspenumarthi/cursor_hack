@@ -34,6 +34,7 @@ FRENCH_FILES = {
     "mom": "F-F_Momentum_Factor_daily_CSV.zip",
 }
 FRED_VIX_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS"
+FRED_VIX3M_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VXVCLS"  # CBOE 3-month VIX, from 2007-12
 
 HEADERS = {"User-Agent": "gqh-reversal-study/1.0 (academic hackathon; public data)"}
 
@@ -90,8 +91,8 @@ def load_french(key: str, force: bool = False) -> pd.DataFrame:
     return parse_french_csv(text)
 
 
-def load_vix(force: bool = False) -> pd.Series:
-    raw = _fetch(FRED_VIX_URL, RAW / "VIXCLS.csv", force)
+def load_vix(force: bool = False, url: str = FRED_VIX_URL, fname: str = "VIXCLS.csv") -> pd.Series:
+    raw = _fetch(url, RAW / fname, force)
     df = pd.read_csv(io.BytesIO(raw))
     df.columns = ["date", "vix"]
     df["date"] = pd.to_datetime(df["date"])
@@ -111,11 +112,13 @@ def build_processed(force: bool = False) -> pd.DataFrame:
     mom = load_french("mom", force)["Mom"].rename("mom")
     print("FRED")
     vix = load_vix(force)
+    vix3m = load_vix(force, FRED_VIX3M_URL, "VXVCLS.csv").rename("vix3m")
 
     returns = pd.concat([st_rev, big_rev, small_rev, ff5, mom], axis=1)
     returns.index.name = "date"
     returns.to_csv(PROCESSED / "returns_daily.csv", float_format="%.6f")
     vix.to_frame().to_csv(PROCESSED / "vix_daily.csv", float_format="%.2f")
+    vix3m.to_frame().to_csv(PROCESSED / "vix3m_daily.csv", float_format="%.2f")
 
     print(f"  returns: {returns.index.min().date()} -> {returns.index.max().date()}  ({len(returns):,} rows)")
     print(f"  vix:     {vix.index.min().date()} -> {vix.index.max().date()}  ({len(vix):,} rows)")
