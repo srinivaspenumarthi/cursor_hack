@@ -70,11 +70,11 @@ def main() -> None:
                       f"(ann ret {ph['mean_variance']['ann_return_net']*100:6.2f}%)")
     print(f"\nwrote {out_dir / 'REPORT.md'}")
 
-    if not args.skip_module_b:
-        run_module_b(out_dir, args.oos)
+    panel_b = run_module_b(out_dir, args.oos) if not args.skip_module_b else None
+    run_module_c(panel, panel_b, out_dir, args.oos)
 
 
-def run_module_b(out_dir: Path, oos: bool) -> None:
+def run_module_b(out_dir: Path, oos: bool):
     from gqh import gapfade
     from gqh.report_b import write_report_b
 
@@ -107,6 +107,37 @@ def run_module_b(out_dir: Path, oos: bool) -> None:
     if oos_res:
         show(oos_res, f"OUT-OF-SAMPLE {oos_res['start']} -> {oos_res['end']}")
     print(f"\nwrote {out_dir / 'REPORT_B.md'}")
+    return panel
+
+
+def run_module_c(panel_a, panel_b, out_dir: Path, oos: bool) -> None:
+    from gqh import pricing
+    from gqh.report_c import write_report_c
+
+    panels = pricing.build_panels(panel_a, panel_b)
+    print("\n==== Module C: price of risk (VRP, term structure) vs quantity of risk (realised variance) ====")
+    is_res = pricing.run_in_sample(panels, out_dir)
+    oos_res = pricing.run_out_of_sample(panels, out_dir) if oos else None
+    write_report_c(is_res, oos_res, out_dir)
+
+    def show(res: dict, tag: str) -> None:
+        print(f"\n[pricing] {tag}")
+        for book in panels:
+            c1 = res["c1"][book]["21"]
+            R = res["rules"][book]
+            print(f"  {pricing.BOOK_LABEL[book]:22s} C1: b_VRP t = {c1['t_vrp_nw']:5.2f}, b_RV t = {c1['t_rv_nw']:5.2f} | "
+                  f"net Sharpe: constant {R['constant']['sharpe_net']:5.2f}, VIX rule {R['vix_rule']['sharpe_net']:5.2f}, "
+                  f"VRP>median {R['vrp_median']['sharpe_net']:5.2f}, backwardation {R['backwardation']['sharpe_net']:5.2f} "
+                  f"(constant 2008+ {R['constant_2008_on']['sharpe_net']:5.2f})")
+            if "c2" in res and book in res["c2"]:
+                c2 = res["c2"][book]
+                print(f"  {'':22s} C2: high-VRP beats low-VRP within RV terciles {c2['rv_terciles_where_high_vrp_beats_low']}/3; "
+                      f"high-RV beats low-RV within VRP terciles {c2['vrp_terciles_where_high_rv_beats_low']}/3")
+
+    show(is_res, "in-sample")
+    if oos_res:
+        show(oos_res, f"OUT-OF-SAMPLE {config.OOS_START.date()} -> {config.OOS_END.date()}")
+    print(f"\nwrote {out_dir / 'REPORT_C.md'}")
 
 
 if __name__ == "__main__":
