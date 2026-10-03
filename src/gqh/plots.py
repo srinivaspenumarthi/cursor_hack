@@ -29,7 +29,7 @@ def _save(fig, path: Path):
 
 def equity_curves(bt_timed: pd.DataFrame, bt_const: pd.DataFrame, title: str, path: Path,
                   oos_timed: pd.DataFrame | None = None, oos_const: pd.DataFrame | None = None):
-    fig, ax = plt.subplots(figsize=(7.2, 3.3))
+    fig, ax = plt.subplots(figsize=(7.2, 2.6))
     ax.plot(equity(bt_const["net"]), color=C_CONST, lw=1.1, label="constant exposure, net")
     ax.plot(equity(bt_timed["gross"]), color=C_GROSS, lw=0.9, ls="--", label="VIX-timed, gross")
     ax.plot(equity(bt_timed["net"]), color=C_TIMED, lw=1.4, label="VIX-timed, net")
@@ -39,8 +39,8 @@ def equity_curves(bt_timed: pd.DataFrame, bt_const: pd.DataFrame, title: str, pa
         ax.plot(equity(oos_timed["net"], e0), color=C_TIMED, lw=1.4)
         ax.plot(equity(oos_const["net"], e1), color=C_CONST, lw=1.1)
         ax.axvspan(config.OOS_START, oos_timed.index[-1], color=C_OOS, alpha=0.12)
-        ax.text(config.OOS_START, ax.get_ylim()[0] * 1.15 if ax.get_yscale() == "log" else 0.0,
-                " out-of-sample", color=C_OOS, fontsize=8, va="bottom")
+        ax.annotate("out-of-sample", xy=(config.OOS_START, 0.04), xycoords=("data", "axes fraction"),
+                    color=C_OOS, fontsize=8, ha="right", va="bottom", xytext=(-3, 0), textcoords="offset points")
     else:
         ax.axvline(config.IS_END, color=C_OOS, lw=1, ls=":")
         ax.text(config.IS_END, 1.0, " OOS locked", color=C_OOS, fontsize=8, rotation=90, va="bottom")
@@ -52,7 +52,7 @@ def equity_curves(bt_timed: pd.DataFrame, bt_const: pd.DataFrame, title: str, pa
 
 
 def quintile_bars(tbl_all: pd.DataFrame, tbl_big: pd.DataFrame, path: Path):
-    fig, ax = plt.subplots(figsize=(7.2, 2.9))
+    fig, ax = plt.subplots(figsize=(7.2, 2.4))
     x = np.arange(len(tbl_all))
     w = 0.38
     ax.bar(x - w / 2, tbl_all["mean_bps"], w, yerr=1.96 * tbl_all["se_bps"], color=C_CONST, capsize=3, label="ST_Rev factor (all-cap)")
@@ -84,7 +84,7 @@ def yearly_bars(by_year_timed: pd.Series, by_year_const: pd.Series, title: str, 
 def sensitivity_heatmap(grid: pd.DataFrame, universe: str, path: Path, value: str = "sharpe_net"):
     sub = grid[(grid["universe"] == universe) & (grid["rule"] == "linear")]
     piv = sub.pivot(index="cap", columns="norm", values=value)
-    fig, ax = plt.subplots(figsize=(3.6, 2.8))
+    fig, ax = plt.subplots(figsize=(3.6, 2.5))
     im = ax.imshow(piv.values, cmap="Greens", aspect="auto")
     for i in range(piv.shape[0]):
         for j in range(piv.shape[1]):
@@ -101,7 +101,7 @@ def sensitivity_heatmap(grid: pd.DataFrame, universe: str, path: Path, value: st
 
 
 def cost_curve(curve: pd.DataFrame, path: Path):
-    fig, ax = plt.subplots(figsize=(3.6, 2.8))
+    fig, ax = plt.subplots(figsize=(3.6, 2.5))
     for col, c, lab in [("timed", C_TIMED, "VIX-timed (headline)"), ("constant", C_CONST, "constant"),
                         ("mean_variance", "#7a3fb0", "mean-variance (post-hoc)")]:
         if col in curve:
@@ -127,7 +127,7 @@ def rolling_sharpe_plot(bt_timed: pd.DataFrame, bt_const: pd.DataFrame, path: Pa
 
 
 def post_hoc_curves(bts: dict, title: str, path: Path, log: bool = True):
-    fig, ax = plt.subplots(figsize=(7.2, 3.0))
+    fig, ax = plt.subplots(figsize=(7.2, 2.5))
     style = {"constant": (C_CONST, 1.0, "constant exposure"),
              "vol_target": (C_GROSS, 1.0, "vol-targeted (no VIX info)"),
              "mean_variance": (C_TIMED, 1.5, "mean-variance: E[r|VIX]/Var, walk-forward")}

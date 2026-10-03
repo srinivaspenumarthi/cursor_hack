@@ -6,3 +6,4 @@ data/raw/
 data/processed/
 .pytest_cache/
 .ipynb_checkpoints/
+note/quant_note.html
