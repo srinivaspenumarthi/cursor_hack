@@ -191,7 +191,7 @@ def variant_grid(panels: dict[str, pd.DataFrame]) -> pd.DataFrame:
 # figures
 # ---------------------------------------------------------------------------
 def fig_double_sort(sr_big: pd.DataFrame, sr_strev: pd.DataFrame, path: Path):
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.3))
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.0))
     for ax, sr, title in ((axes[0], sr_big, "big-cap reversal leg"), (axes[1], sr_strev, "ST_Rev factor")):
         im = ax.imshow(sr.values, cmap="RdYlGn", vmin=-1.5, vmax=1.5, aspect="auto", origin="lower")
         for i in range(3):

@@ -52,7 +52,7 @@ def equity_curves(bt_timed: pd.DataFrame, bt_const: pd.DataFrame, title: str, pa
 
 
 def quintile_bars(tbl_all: pd.DataFrame, tbl_big: pd.DataFrame, path: Path):
-    fig, ax = plt.subplots(figsize=(7.2, 2.4))
+    fig, ax = plt.subplots(figsize=(7.2, 2.1))
     x = np.arange(len(tbl_all))
     w = 0.38
     ax.bar(x - w / 2, tbl_all["mean_bps"], w, yerr=1.96 * tbl_all["se_bps"], color=C_CONST, capsize=3, label="ST_Rev factor (all-cap)")

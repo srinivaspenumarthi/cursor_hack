@@ -14,6 +14,10 @@ period evaluated once:
 * **Module B** ([`HYPOTHESIS_B.md`](HYPOTHESIS_B.md)): fading overnight gaps in S&P 500 names
   from the opening to the closing auction, 2005–2026, with a pre-registered rule that
   *participates* only when lagged VIX ≥ 20 — the lesson of Module A applied.
+* **Module C** ([`HYPOTHESIS_C.md`](HYPOTHESIS_C.md)): an attempt to beat VIX with a sharper
+  state variable — the variance risk premium (price of risk) separated from realised
+  variance (quantity of risk), plus VIX term-structure backwardation — on the same books.
+  **Rejected as pre-specified**, and reported in full.
 
 **Answer, in one paragraph.** The state-dependence is real and replicates out of sample in
 both modules. A: reversal returns rise with yesterday's VIX (Newey–West t ≈ 2.4 in-sample,
@@ -26,7 +30,11 @@ Sharpe 3.3), 35 bps/day in the top VIX quintile vs 12 elsewhere, both legs contr
 5 bps per dollar traded it is a market maker's premium (always-on nets nothing), and the
 participation rule lifts net Sharpe from −0.26 to +0.12 in-sample and from −1.83 to +0.24
 out of sample, where the top-VIX state paid 56 bps/day and every other state zero. The
-premium has decayed (33 bps/day before 2013, 8 after). Tradeable conclusion: a
+premium has decayed (33 bps/day before 2013, 8 after). C: the premium loads on *realised*
+variance, not on the variance risk premium; VRP rules lose to constant exposure in and out of
+sample; backwardation helped one book in-sample and did not replicate — so no public state
+variable we found selects the premium without selecting the volatility, which is the
+strongest support for the constant-notional conclusion. Tradeable conclusion: a
 constant-notional large-cap reversal book (net Sharpe ≈ 0.4, break-even 14 bps, $100M–$500M
 capacity) and, for a desk with ~2.5 bps auction execution, a VIX-gated gap fade (Sharpe ≈ 1,
 tens of millions of capacity). Full argument in [`note/quant_note.pdf`](note/quant_note.pdf).
@@ -44,18 +52,20 @@ open/close via `yfinance`). Outputs:
 
 | Path | What |
 |---|---|
-| `results/REPORT.md`, `results/REPORT_B.md` | every table in the note, auto-generated (Module A / Module B) |
+| `results/REPORT.md`, `results/REPORT_B.md`, `results/REPORT_C.md` | every table in the note, auto-generated (Modules A / B / C) |
 | `results/in_sample.json`, `results/out_of_sample.json` | Module A statistics, machine-readable |
 | `results/gapfade_in_sample.json`, `results/gapfade_out_of_sample.json` | Module B statistics |
+| `results/pricing_in_sample.json`, `results/pricing_out_of_sample.json` | Module C statistics |
 | `results/figures/*.png` | every figure in the note |
-| `results/tables/*.csv` | quintile tables, sensitivity grids (36 + 24 variants), cost curve, capacity, daily P&L |
+| `results/tables/*.csv` | quintile tables, sensitivity grids (36 + 24 + 18 variants), cost curve, capacity, daily P&L |
 
 Other commands:
 
 ```bash
 python run_all.py                 # in-sample only (what we ran while developing; OOS stays locked)
 python run_all.py --skip-module-b # Module A only (no yfinance needed)
-python -m pytest -q               # 17 tests: no lookahead, point-in-time universe, cost accounting, split rule
+python today.py                   # operational view: latest VIX, Module B gate, expected premium vs toll, Module A sizing
+python -m pytest -q               # 21 tests: no lookahead, point-in-time universe, lagged state variables, cost accounting
 cd src && python -m gqh.capacity  # Module A capacity table (square-root impact model)
 python note/build_pdf.py          # rebuild note/quant_note.pdf from note/quant_note.md (needs Chrome/Chromium)
 ```
@@ -70,7 +80,7 @@ Wikipedia constituent list that defines Module B's universe.
 | Series | Source |
 |---|---|
 | Daily Short-Term Reversal factor `ST_Rev`; daily 6 portfolios formed on size and prior (−20,−1) return; Fama–French 5 factors; momentum factor | [Kenneth R. French Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) (CRSP-based, through 2026-08) |
-| CBOE VIX close (`VIXCLS`) | [FRED, Federal Reserve Bank of St. Louis](https://fred.stlouisfed.org/series/VIXCLS) |
+| CBOE VIX close (`VIXCLS`); CBOE 3-month VIX (`VXVCLS`, from 2007-12) | [FRED, Federal Reserve Bank of St. Louis](https://fred.stlouisfed.org/series/VIXCLS) |
 | Daily adjusted open/close, current S&P 500 constituents | Yahoo Finance via [`yfinance`](https://github.com/ranaroussi/yfinance); constituent list and index-addition dates from [Wikipedia](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies), snapshot 2026-10-03 |
 
 Samples: A 1990-01-02 → 2026-08-31; B 2005-01-03 → 2026-08-31. In-sample to 2024-08-31 for
@@ -90,7 +100,9 @@ recomputed exactly.
 ```
 HYPOTHESIS.md            Module A: pre-registered hypothesis, rule, cost model, kill criteria (first commit)
 HYPOTHESIS_B.md          Module B: pre-registered hypothesis, universe, rule, cost model, kill criteria
+HYPOTHESIS_C.md          Module C: pre-registered decomposition (VRP vs realised variance), rules, kill criteria
 run_all.py               reproduces the note: python run_all.py --oos
+today.py                 daily state check from the cached data
 requirements.txt
 data/download.py         French + FRED (cached, git-ignored)
 data/download_stocks.py  yfinance open/close for the constituent list (cached, git-ignored)
@@ -103,8 +115,9 @@ src/gqh/
   metrics.py             Sharpe, drawdown, Newey–West regressions, factor alpha, deflated Sharpe
   study.py               Module A study: in-sample, grid, sub-periods, post-hoc, single OOS run
   gapfade.py             Module B: panel construction, participation rule, backtest, tests, grid, figures, single OOS run
+  pricing.py             Module C: VRP / RV / term-structure states, double sorts, rule comparison on all books, single OOS run
   capacity.py            square-root-impact capacity model
-  plots.py, report.py, report_b.py    figures and results/REPORT*.md
+  plots.py, report*.py   figures and results/REPORT*.md
 tests/                   pytest: no lookahead, point-in-time membership, cost accounting, split rule
 note/                    quant_note.md → quant_note.pdf (build_pdf.py)
 results/                 committed outputs so judges can compare against the note
@@ -118,10 +131,13 @@ results/                 committed outputs so judges can compare against the not
 * Module B: `HYPOTHESIS_B.md` and the frozen constituent list committed 11:53:57 UTC, before
   any single-stock price was downloaded. In-sample committed 12:01:40; `--oos` run **once** and
   committed 12:02:08.
-* 62 strategy variants in total: 36 pre-registered in `HYPOTHESIS.md`, 2 post-hoc risk-aware
+* Module C: `HYPOTHESIS_C.md` committed 18:14:13 UTC, before any VRP or term-structure series
+  was computed. In-sample committed 18:19:02; `--oos` run **once** and committed 18:19:38.
+* 80 strategy variants in total: 36 pre-registered in `HYPOTHESIS.md`, 2 post-hoc risk-aware
   rules for Module A (labelled as such everywhere, included in the deflated-Sharpe trial count),
-  24 pre-registered in `HYPOTHESIS_B.md`. The Module B sub-period split (2005–2012 / 2013–2024)
-  was chosen after seeing the by-year table and is labelled descriptive.
+  24 pre-registered in `HYPOTHESIS_B.md`, 18 pre-registered in `HYPOTHESIS_C.md`. The Module B
+  sub-period split (2005–2012 / 2013–2024) was chosen after seeing the by-year table and is
+  labelled descriptive.
 * One bug was fixed after Module A's first in-sample run: factor betas were reported in mixed
   units. Alphas and t-stats were unaffected. One data-cleaning rule in Module B (|gap| > 20 %
   excluded, using open-time information only) was not in the hypothesis file; results without
