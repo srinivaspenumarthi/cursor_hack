@@ -152,6 +152,32 @@ def test_implementation_shortfall_zero_when_indicative_equals_open():
     assert sf2["basket_overlap"] < 1.0 and sf2["median_abs_gap_error_bps"] > 0
 
 
+def test_dashboard_view_shapes(store, tmp_path):
+    """The dashboard reads only through dashboard_data; pin the contract it relies on."""
+    from live import dashboard_data as dd
+    from live.feeds.vix import VixState
+    assert dd.live_view(store, SESSION)["gate"] is None          # empty store, no crash
+    store.save_gate(SESSION, VixState(date(2026, 7, 29), 20.66, 22.1, "test"), True, "VIX>=20", 500)
+    store.log_step(SESSION, "open_auction", "submitted", {"n": 1})
+    store.save_pnl(SESSION, {"gate_on": True, "vix_lag": 20.66, "gross_pnl": 100.0, "cost": 20.0, "net_pnl": 80.0, "net_bps": 0.8})
+    v = dd.live_view(store, SESSION)
+    assert v["gate"]["on"] is True and v["gate"]["vix"] == pytest.approx(20.66)
+    assert list(v["steps"]["step"]) == ["open_auction"]
+    assert v["history"]["cost_bps"].iloc[0] == pytest.approx(1e4 * 20.0 / v["notional_per_side"])
+    assert v["history"]["cum_net"].iloc[0] == pytest.approx(80.0)
+    rv = dd.research_view(tmp_path)                               # empty dir: every artefact absent
+    assert rv["vix_quintiles"] is None and rv["figures"] == []
+    rv = dd.research_view()                                       # committed results
+    assert rv["vix_quintiles"] is not None and {"mean_bps", "n_days"} <= set(rv["vix_quintiles"].columns)
+    ks = tmp_path / "KILL"
+    import live.dashboard_data as ddmod
+    ddmod.SETTINGS.kill_switch = ks
+    dd.kill(True)
+    assert ks.exists()
+    dd.kill(False)
+    assert not ks.exists()
+
+
 def test_store_round_trip_sqlite(store):
     from live.feeds.vix import VixState
     store.save_gate(SESSION, VixState(date(2026, 7, 29), 20.66, 22.1, "test"), True, "r", 500)
