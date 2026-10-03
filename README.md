@@ -65,7 +65,7 @@ Other commands:
 python run_all.py                 # in-sample only (what we ran while developing; OOS stays locked)
 python run_all.py --skip-module-b # Module A only (no yfinance needed)
 python today.py                   # operational view: latest VIX, Module B gate, expected premium vs toll, Module A sizing
-python -m pytest -q               # 21 tests: no lookahead, point-in-time universe, lagged state variables, cost accounting
+python -m pytest -q               # 30 tests: no lookahead, point-in-time universe, lagged state variables, cost accounting, paper fills & risk
 cd src && python -m gqh.capacity  # Module A capacity table (square-root impact model)
 python note/build_pdf.py          # rebuild note/quant_note.pdf from note/quant_note.md (needs Chrome/Chromium)
 ```
@@ -95,6 +95,60 @@ with a clean clone. The committed `results/tables/gapfade_panel_daily.csv` holds
 daily portfolio series (not raw prices) from which every Module B statistic can be
 recomputed exactly.
 
+## Live / paper-trading layer (`live/`)
+
+The research answers "is the premium real and when does it pay?". `live/` is the operational
+loop that would trade Module B's rule, built so that every production assumption the backtest
+makes can be *measured* rather than assumed. It is paper-trading by default (simulated
+auction fills, pre-registered cost toll) and never imports from `src/gqh` except for the
+pre-registered constants, so research and operations cannot drift apart silently.
+
+```bash
+pip install -r requirements-live.txt
+cp .env.example .env                    # add MASSIVE_API_KEY (required); the rest are optional
+python -m live replay --date 2026-07-30 # run the full cycle on a past session with historical data
+python -m live status --days 20         # operator dashboard
+python -m live schedule                 # run the daily cycle on a clock (blocking; ET)
+```
+
+Daily cycle (all times ET, each step idempotent and audited in the store):
+
+| Time | Step | What happens |
+|---|---|---|
+| 08:45 | `pre_open` | VIX_{t−1} from Massive → Yahoo → FRED (first that answers, with the date it refers to); gate ON iff ≥ 20; universe as of today (point-in-time constituents). |
+| 09:27 | `open_auction` | Pre-open indicative prices: Nasdaq NOII reference price via Databento (the auction's own estimate, published every second from 09:25), else Massive pre-market last trade / fair value. Gaps → relgap quintiles → dollar-neutral targets → pre-trade risk checks → market-on-open orders before the 09:28 cut-off. |
+| 09:35 | `post_open` | Official opening prints → fills; positions written to the store; book-vs-broker reconciliation; basket overlap vs the official-open book. |
+| every 5 min | `monitor_intraday` | Mark positions at last trade; same-day disaster stop (default 5 % of gross, a >3σ day) flattens at market. |
+| 15:45 | `close_auction` | Market-on-close orders for every open position (NYSE cut-off 15:50). |
+| 16:20 | `eod` | Official closes → fills, P&L net of the toll, flatness check, reconciliation, implementation shortfall; the rule's book is also evaluated on days we did *not* trade so the premium is monitored while out. |
+
+Components: `feeds/massive.py` (official daily OHLC — its open matches the Nasdaq auction
+reference price to the cent — plus real-time snapshots and market status), `feeds/vix.py`,
+`feeds/databento_feed.py` (cost-guarded: every query is priced before it runs; a day of NOII
+for the universe costs about one cent), `store.py` (Timescale/Postgres hypertables if
+`DATABASE_URL` is set, else SQLite — same schema), `signal.py`, `risk.py`, `broker/paper.py`
+(fills at the official auction prints, charges c_base × VIX_{t−1}/20 bps per dollar),
+`broker/alpaca.py` (native `opg`/`cls` auction orders; activates when Alpaca keys are present;
+not exercised against a funded account here), `scheduler.py`, `monitor.py`, `briefing.py`
+(optional Gemini summary of the dashboard; it summarises numbers, it decides nothing).
+
+Risk controls: kill-switch file (`python -m live kill`), duplicate-session guard, VIX gate,
+stale-VIX and stale-indicative blocks, universe-coverage floor (the pre-registered 100 names),
+gross and per-name limits, one-sided/dollar-neutrality checks, same-day disaster stop,
+overnight-position check, reconciliation. A trailing multi-day loss is deliberately a
+*warning for human review*, not an automatic halt: the research shows that cutting exposure
+after losses removes the premium (§5.2, §5.4 of the note).
+
+What the replays showed (March–April 2026 volatility episode, gate ON on 11 sessions): the
+baskets chosen on 09:27 indicative prices overlap the official-open baskets by only 74–86 %,
+i.e. one name in five changes quintile between the last indicative print and the auction —
+a production fact the backtest cannot see, and the first thing to improve (later submission,
+or an imbalance-aware estimate of the open). Implementation shortfall from this is recorded
+per session in `live_pnl.shortfall_bps`.
+
+Keys live in `.env` (git-ignored; `.env.example` documents every variable). Without any key
+the research pipeline is unaffected; without `MASSIVE_API_KEY` the live layer does not start.
+
 ## Repository layout
 
 ```
@@ -118,8 +172,11 @@ src/gqh/
   pricing.py             Module C: VRP / RV / term-structure states, double sorts, rule comparison on all books, single OOS run
   capacity.py            square-root-impact capacity model
   plots.py, report*.py   figures and results/REPORT*.md
-tests/                   pytest: no lookahead, point-in-time membership, cost accounting, split rule
+live/                    paper/live trading layer: feeds, signal, risk, broker, store, scheduler, monitor (python -m live)
+tests/                   pytest: no lookahead, point-in-time membership, cost accounting, split rule; live-layer fills/risk/flatness
 note/                    quant_note.md → quant_note.pdf (build_pdf.py)
+requirements-live.txt    extra dependencies for live/ (dotenv, psycopg, apscheduler, databento)
+.env.example             every credential and limit the live layer reads; copy to .env (git-ignored)
 results/                 committed outputs so judges can compare against the note
 ```
 
