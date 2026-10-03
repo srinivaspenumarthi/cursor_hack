@@ -832,6 +832,6 @@
    }
   }
  },
- "evaluated_utc": "2026-10-03T12:16:08+00:00",
+ "evaluated_utc": "2026-10-03T12:25:13+00:00",
  "note": "Single evaluation of the pre-registered rule (and the disclosed post-hoc rules) on the held-out period. Nothing was changed after this run."
 }

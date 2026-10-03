@@ -84,6 +84,9 @@ def run_module_b(out_dir: Path, oos: bool) -> None:
     print(f"In-sample : {panel_is.index[0].date()} -> {panel_is.index[-1].date()}  ({len(panel_is):,} days)")
     print(f"Held out  : {config.OOS_START.date()} -> {panel_oos.index[-1].date() if len(panel_oos) else '?'}  "
           f"({len(panel_oos):,} days){'' if oos else '  [LOCKED]'}")
+    (out_dir / "tables").mkdir(parents=True, exist_ok=True)
+    # derived daily portfolio series (not raw prices): lets anyone recompute Module B exactly
+    (panel_is if not oos else panel).to_csv(out_dir / "tables" / "gapfade_panel_daily.csv", float_format="%.8f")
     is_res = gapfade.run_in_sample(panel_is, out_dir)
     oos_res = gapfade.run_out_of_sample(panel, out_dir, is_res) if oos else None
     write_report_b(is_res, oos_res, out_dir)

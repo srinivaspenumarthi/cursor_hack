@@ -78,8 +78,12 @@ both; **out-of-sample 2024-09-01 → 2026-08-31** (the track's "most recent 20 %
 whichever is shorter" rule: the 2-year cap binds). Module B's universe is point-in-time on
 the way in (a stock enters only from its index-addition date) but survivorship-biased on the
 way out (removed names are missing); the note discloses this and tests it (both legs of the
-spread contribute symmetrically). Yahoo may revise prices after the fact; the cached download
-is what the committed results were produced from.
+spread contribute symmetrically). Yahoo's adjusted prices differ by < 0.1 % between downloads
+(adjustment-factor rounding), so a fresh run reproduces Module B to the precision quoted in
+the note (e.g. 17.8 bps gross, Sharpe −0.26 / +0.12) but not bit-for-bit; we verified this
+with a clean clone. The committed `results/tables/gapfade_panel_daily.csv` holds the derived
+daily portfolio series (not raw prices) from which every Module B statistic can be
+recomputed exactly.
 
 ## Repository layout
 
