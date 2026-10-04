@@ -88,6 +88,15 @@ and either command refuses a window that crosses 2026-01-01. Outputs:
 `_oos` after the single out-of-sample run. Gemini writes `results/eightk_briefing.txt` from
 those numbers. ElevenLabs writes an mp3 only when `ELEVENLABS_API_KEY` is set.
 
+What that study found, and why it is not the submission's claim: in-sample, 300 repurchase
+8-Ks in the 2022 top-100, 18 pairs still quoted 21 sessions later, event minus control
+**−120 bps** (95% interval −293 to +52). The pre-registered test fails. Out of sample,
+opened once after that commit, the 21-session difference is +1,043 bps on 3 pairs
+(interval −3,816 to +5,902). The sign flips, which the hypothesis also treats as a failure.
+The liquidity result in the note is unchanged. Appendix A6 of `note/quant_note.md` has the
+full accounting. The first option pull used Massive for 3,234 contracts; Databento was asked
+88 times when Massive had no bar and added none.
+
 Raw bars and filings are cached in `data/raw/` and `data/processed/` (git-ignored; no API
 keys and no licensed bars are committed). The only committed market file for the liquidity
 study is `data/sp500_constituents.csv`, a 503-row snapshot of the Wikipedia constituent list.
@@ -239,6 +248,11 @@ results/                 committed outputs so judges can compare against the not
   at the official open is an assumption; its cost is stressed from 2.5 to 10 bps.
 * We were given a practitioner's intraday gap-trading strategy matrix and ML-ops code. It
   contained no price or trade data and was used only to motivate Module B's design.
+* 8-K study: `HYPOTHESIS_8K.md` committed 2026-10-04 00:54 UTC, before any filing or option
+  bar was stored. In-sample committed 01:53 UTC (`80b867f`). A scoring bug that pooled all
+  54 variants into the headline was fixed and recomputed from the cached bars *before* that
+  commit; the discarded pass was never the recorded result. Out of sample was then run
+  **once**, 01:55 UTC, and committed 01:57 UTC (`f66c2d9`). The program refuses a second pass.
 
 ## Team
 
