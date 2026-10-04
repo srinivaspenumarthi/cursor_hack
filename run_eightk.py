@@ -295,6 +295,11 @@ def run(start: str, end: str) -> dict:
             if i % 100 == 0 or i == len(jobs):
                 print(f"  option contracts {i}/{len(jobs)}", flush=True)
     events = evaluate(specs, spot, opts, sessions)
+    headline_mask = (
+        (events["delay"] == HEADLINE["delay"]) & np.isclose(events["haircut"], HEADLINE["haircut"])
+        & np.isclose(events["otm"], HEADLINE["otm"]) & (events["expiry_k"] == HEADLINE["expiry_k"])
+    ) if len(events) else slice(0)
+    headline_events = events[headline_mask] if len(events) else events
     ctrl_rows = []
     for s in controls:
         opt = opts.get(s["osi"], pd.Series(dtype=float))
@@ -310,11 +315,9 @@ def run(start: str, end: str) -> dict:
         row.update({f"bps_{h}": ev[h] for h in ev})
         ctrl_rows.append(row)
     ctrl_df = pd.DataFrame(ctrl_rows)
-    diffs = paired_diffs(events, ctrl_df)
+    # The pre-registered test is the headline pair only. The other 53 variants stay in the grid.
+    diffs = paired_diffs(headline_events, ctrl_df)
     summary = summarise_pairs(diffs)
-    headline_mask = ((events["delay"] == HEADLINE["delay"]) & np.isclose(events["haircut"], HEADLINE["haircut"])
-                     & np.isclose(events["otm"], HEADLINE["otm"]) & (events["expiry_k"] == HEADLINE["expiry_k"])) if len(events) else slice(0)
-    headline_events = events[headline_mask] if len(events) else events
     grid_rows = []
     if grid and len(events):
         for (delay, haircut, otm, k), _ in events.groupby(["delay", "haircut", "otm", "expiry_k"], sort=False):
@@ -357,7 +360,7 @@ def run(start: str, end: str) -> dict:
         },
     }
     RESULTS.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(result, indent=2, default=_json))
+    out_path.write_text(json.dumps(_clean(result), indent=2, allow_nan=False))
     _write_table(summary, RESULTS / ("eightk_horizons_oos.csv" if oos else "eightk_horizons_is.csv"))
     if grid_rows:
         pd.DataFrame(grid_rows).to_csv(RESULTS / "eightk_variant_grid.csv", index=False)
@@ -464,6 +467,22 @@ def _brief(result: dict, oos: bool):
             print(f"elevenlabs: {rr.status_code} {rr.text[:120]}", flush=True)
     except Exception as e:
         print(f"elevenlabs: {str(e)[:120]}", flush=True)
+
+
+def _clean(o):
+    if isinstance(o, dict):
+        return {k: _clean(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_clean(v) for v in o]
+    if isinstance(o, (np.floating, float)):
+        return None if not np.isfinite(o) else float(o)
+    if isinstance(o, (np.integer,)):
+        return int(o)
+    if isinstance(o, (np.bool_,)):
+        return bool(o)
+    if isinstance(o, pd.Timestamp):
+        return o.isoformat()
+    return o
 
 
 def _json(o):

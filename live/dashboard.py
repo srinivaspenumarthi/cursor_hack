@@ -81,7 +81,8 @@ if auto:
 st.title("Paid to hold the bag")
 st.caption(f"VIX-gated opening-auction gap fade · session {session} · threshold VIX {view['vix_threshold']:g}")
 
-tab_live, tab_session, tab_research, tab_replay = st.tabs(["Today", "Session detail", "Research", "Replay"])
+tab_live, tab_session, tab_research, tab_replay, tab_eightk = st.tabs(
+    ["Today", "Session detail", "Research", "Replay", "8-K puts"])
 
 # ---------------------------------------------------------------- today
 with tab_live:
@@ -241,3 +242,39 @@ with tab_replay:
                 st.write(write(store(), session))
             except Exception as e:  # noqa: BLE001
                 st.error(f"{type(e).__name__}: {str(e)[:300]}")
+
+# ---------------------------------------------------------------- 8-K puts
+with tab_eightk:
+    st.subheader("Cash-secured puts after repurchase 8-Ks")
+    st.caption("Separate study from the gap fade. Headline is a 5% out-of-the-money put, sold at the close once the filing is public, versus the same issuer 21 sessions earlier. Numbers appear after run_eightk.py.")
+    root = Path(__file__).resolve().parents[1] / "results"
+    is_path, oos_path = root / "eightk_in_sample.json", root / "eightk_out_of_sample.json"
+    if not is_path.exists() and not oos_path.exists():
+        st.info("No 8-K results yet. The in-sample window is 2023-01-01 through 2025-12-31. Out of sample, 2026, is run once after that file is committed.")
+    else:
+        import json as _json
+        for label, path in (("In-sample", is_path), ("Out-of-sample", oos_path)):
+            if not path.exists():
+                st.caption(f"{label}: not run.")
+                continue
+            doc = _json.loads(path.read_text())
+            h = doc.get("horizons_event_minus_control_bps", {}).get("21", {})
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric(f"{label} filings", f"{doc.get('n_filings', 0)}")
+            c2.metric("Headline events", f"{doc.get('n_events_headline', 0)}")
+            c3.metric("With a price", f"{doc.get('n_events_with_entry_price', 0)}")
+            mean = h.get("mean")
+            c4.metric("21-session edge", f"{mean:+.1f} bps" if isinstance(mean, (int, float)) else "—",
+                      f"n={h.get('n', 0)}")
+            rows = []
+            for horizon, stats in doc.get("horizons_event_minus_control_bps", {}).items():
+                rows.append({"horizon": horizon, **stats})
+            if rows:
+                st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch",
+                             column_config={"mean": st.column_config.NumberColumn("event−control bps", format="%+.1f"),
+                                            "lo": st.column_config.NumberColumn("95% lo", format="%+.1f"),
+                                            "hi": st.column_config.NumberColumn("95% hi", format="%+.1f"),
+                                            "t": st.column_config.NumberColumn(format="%+.2f")})
+            brief = path.with_name("eightk_briefing_oos.txt" if "out_of_sample" in path.name else "eightk_briefing.txt")
+            if brief.exists():
+                st.caption(brief.read_text()[:1200])
