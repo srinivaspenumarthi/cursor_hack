@@ -182,11 +182,13 @@ overnight-position check, reconciliation. A trailing multi-day loss is deliberat
 after losses removes the premium (§5.2, §5.4 of the note).
 
 What the replays showed (March–April 2026 volatility episode, gate ON on 11 sessions): the
-baskets chosen on 09:27 indicative prices overlap the official-open baskets by only 74–86 %,
+baskets chosen on 09:27 indicative prices overlap the official-open baskets by 74–86 %,
 i.e. one name in five changes quintile between the last indicative print and the auction —
 a production fact the backtest cannot see, and the first thing to improve (later submission,
 or an imbalance-aware estimate of the open). Implementation shortfall from this is recorded
-per session in `live_pnl.shortfall_bps`.
+per session in `live_pnl.shortfall_bps`. The wider set in appendix A7 of the note is 12
+high-VIX sessions across 2026 (overlap 74–92 %, shortfall −47 to +29 bps/day). Same clock
+check, larger sample. Neither sample replaces the headline backtest.
 
 Keys live in `.env` (git-ignored; `.env.example` documents every variable). Without any key
 the research pipeline is unaffected; without `MASSIVE_API_KEY` the live layer does not start.
@@ -250,6 +252,8 @@ results/                 committed outputs so judges can compare against the not
   at the official open is an assumption; its cost is stressed from 2.5 to 10 bps.
 * We were given a practitioner's intraday gap-trading strategy matrix and ML-ops code. It
   contained no price or trade data and was used only to motivate Module B's design.
+* Opening-price clock: a market-on-open fill at the official open is the auction print, not lookahead. Sorting the basket on that same open is. The names are chosen in the backtest with a price that does not exist until the auction. Twelve replayed 2026 sessions, inside the holdout, put the 09:27 indicative basket at 74–92% overlap with the official-open basket and the shortfall at −47 to +29 bps/day. The headline was not replaced with that sample. The gross Sharpe of 3.3 is before the toll; after 5 bps per side it is −0.26 always-on and +0.12 gated.
+* Reused holdout: 2024-09-01 → 2026-08-31 was opened once for Module A at 11:12 UTC. Module B's hypothesis was written at 11:53, after that result, and Module C's at 18:14, after both. Each module's own numbers were computed once and not refit. The window was not untouched. A's out-of-sample slope is the clean confirmation. Appendix A7 of the note.
 * 8-K study: `HYPOTHESIS_8K.md` committed 2026-10-04 00:54 UTC, before any filing or option
   bar was stored. In-sample committed 01:53 UTC (`80b867f`). A scoring bug that pooled all
   54 variants into the headline was fixed and recomputed from the cached bars *before* that
