@@ -47,6 +47,37 @@ def research():
     return data.research_view()
 
 
+FILING_EDGE_PORT = 8877
+
+
+@st.cache_resource
+def filing_edge_replay() -> str:
+    """Serve the saved Filing Edge pages. Replay only: no Massive calls and no new holdout pass."""
+    import functools
+    import http.server
+    import socketserver
+    import threading
+
+    docs = Path(__file__).resolve().parents[1] / "filing_edge" / "docs"
+
+    class _Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            return
+
+    handler = functools.partial(_Quiet, directory=str(docs))
+
+    class _Replay(socketserver.ThreadingTCPServer):
+        allow_reuse_address = True
+        daemon_threads = True
+
+    try:
+        httpd = _Replay(("0.0.0.0", FILING_EDGE_PORT), handler)
+    except OSError:
+        return f"http://127.0.0.1:{FILING_EDGE_PORT}/"
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return f"http://127.0.0.1:{FILING_EDGE_PORT}/"
+
+
 def _bps(x, signed=True) -> str:
     if x is None or pd.isna(x):
         return "—"
@@ -81,8 +112,8 @@ if auto:
 st.title("Paid to hold the bag")
 st.caption(f"VIX-gated opening-auction gap fade · session {session} · threshold VIX {view['vix_threshold']:g}")
 
-tab_live, tab_session, tab_research, tab_replay, tab_eightk = st.tabs(
-    ["Today", "Session detail", "Research", "Replay", "8-K puts"])
+tab_live, tab_session, tab_research, tab_replay, tab_eightk, tab_filing = st.tabs(
+    ["Today", "Session detail", "Research", "Replay", "8-K daily", "Filing Edge"])
 
 # ---------------------------------------------------------------- today
 with tab_live:
@@ -245,8 +276,8 @@ with tab_replay:
 
 # ---------------------------------------------------------------- 8-K puts
 with tab_eightk:
-    st.subheader("Cash-secured puts after repurchase 8-Ks")
-    st.caption("Separate study from the gap fade. Headline is a 5% out-of-the-money put, sold at the close once the filing is public, versus the same issuer 21 sessions earlier. Numbers appear after run_eightk.py.")
+    st.subheader("Earlier 8-K study: daily last trades")
+    st.caption("This is the last-trade study in HYPOTHESIS_8K.md. It failed its pre-registered test. It is not the Massive submission. The quote-level study is the Filing Edge tab, and that tab only replays saved results.")
     root = Path(__file__).resolve().parents[1] / "results"
     is_path, oos_path = root / "eightk_in_sample.json", root / "eightk_out_of_sample.json"
     if not is_path.exists() and not oos_path.exists():
@@ -278,3 +309,23 @@ with tab_eightk:
             brief = path.with_name("eightk_briefing_oos.txt" if "out_of_sample" in path.name else "eightk_briefing.txt")
             if brief.exists():
                 st.caption(brief.read_text()[:1200])
+
+# ---------------------------------------------------------------- Filing Edge (saved replay)
+with tab_filing:
+    st.subheader("Filing Edge · Massive study")
+    st.caption(
+        "Saved replay of the NBBO cash-secured put study. Development difference −186 bps. "
+        "Held-out account lost $796 on $1 million. Decision: research only. "
+        "Switching Development / Held-out test only changes which saved report is shown. "
+        "It does not open the window again."
+    )
+    replay_url = filing_edge_replay()
+    try:
+        seen_host = (st.context.headers.get("Host") or "").split(":")[0]
+    except Exception:
+        seen_host = ""
+    host = seen_host if seen_host and seen_host not in ("0.0.0.0",) else "127.0.0.1"
+    page = f"http://{host}:{FILING_EDGE_PORT}/"
+    st.link_button("Open Filing Edge", page)
+    st.iframe(page, height=920)
+    st.caption(f"Replay server: {replay_url}")

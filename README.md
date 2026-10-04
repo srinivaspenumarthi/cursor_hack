@@ -11,7 +11,7 @@ This is the only repo to submit. It holds two finished studies. Their numbers ar
 | Systematic trading | this directory | [`note/quant_note.pdf`](note/quant_note.pdf). Liquidity premium rises with lagged VIX. Net Sharpe about 0.4 constant; gated gap fade +0.12 in-sample and +0.24 held out. `python run_all.py --oos` |
 | Massive 8-K | [`filing_edge/`](filing_edge/) | [`filing_edge/submission/Massive_Research_Note.pdf`](filing_edge/submission/Massive_Research_Note.pdf) (2 pages) and [`filing_edge/submission/Systematic_Trading_Note.pdf`](filing_edge/submission/Systematic_Trading_Note.pdf) (5 pages). Cash-secured puts after buyback filings, NBBO quotes, funded account. Development −186 bps. Held-out account lost $796 on $1 million. Decision: do not trade. |
 
-The daily-bar 8-K study in this directory (`HYPOTHESIS_8K.md`, appendix A6) is an earlier failed test on last-trade closes. Filing Edge is the Massive study. Both failures stay in the repo. The saved Massive replay is [srinivaspenumarthi.github.io/hack](https://srinivaspenumarthi.github.io/hack/), and the same pages are in `filing_edge/docs/`.
+The daily-bar 8-K study in this directory (`HYPOTHESIS_8K.md`, appendix A6) is an earlier failed test on last-trade closes. Filing Edge is the Massive study. Both failures stay in the repo. The saved Massive replay is [srinivaspenumarthi.github.io/hack](https://srinivaspenumarthi.github.io/hack/), and the same pages are in `filing_edge/docs/`. The operator dashboard's Filing Edge tab embeds that saved replay. Switching its reports does not open 2026 again.
 
 **Question.** Short-term reversal — being the counterparty to someone who must trade now —
 is the return to providing liquidity. If so, the premium should be largest when the capital
