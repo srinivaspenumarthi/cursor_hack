@@ -147,13 +147,20 @@ def databento_option_bars(osi: str, start: str, end: str) -> pd.DataFrame:
 
 
 def _sec_page(phrase: str, start: str, end: str, frm: int) -> dict:
-    r = _get("https://efts.sec.gov/LATEST/search-index", {
-        "q": f'"{phrase}"', "forms": "8-K", "dateRange": "custom",
-        "startdt": start, "enddt": end, "from": frm,
-    }, headers={"User-Agent": SEC_UA, "Accept": "application/json"})
-    if r.status_code >= 400:
-        raise RuntimeError(f"SEC search {phrase}: {r.status_code} {r.text[:160]}")
-    return r.json()
+    last = ""
+    for attempt in range(6):
+        r = _get("https://efts.sec.gov/LATEST/search-index", {
+            "q": f'"{phrase}"', "forms": "8-K", "dateRange": "custom",
+            "startdt": start, "enddt": end, "from": frm,
+        }, headers={"User-Agent": SEC_UA, "Accept": "application/json"})
+        if r.status_code in (429, 500, 502, 503) and attempt < 5:
+            last = r.text[:160]
+            time.sleep(min(60, 2 ** attempt + 1))
+            continue
+        if r.status_code >= 400:
+            raise RuntimeError(f"SEC search {phrase}: {r.status_code} {r.text[:160]}")
+        return r.json()
+    raise RuntimeError(f"SEC search {phrase}: still failing after retries ({last})")
 
 
 def _hits_to_rows(hits: list, phrase: str) -> list[dict]:
