@@ -142,14 +142,16 @@ python -m live schedule                 # run the daily cycle on a clock (blocki
 streamlit run live/dashboard.py --server.port 8765   # same dashboard in the browser
 ```
 
-The browser dashboard has four tabs. **Today**: the gate, VIX_{t−1}, the VIX/VIX3M term ratio,
+The browser dashboard has five tabs. **Today**: the gate, VIX_{t−1}, the VIX/VIX3M term ratio,
 universe size, cumulative net P&L and the per-session table (gross, cost, net, the rule book's
 spread whether or not we traded, basket overlap, implementation shortfall), today's step log,
 risk events, and open positions marked to the last trade. **Session detail**: the target
 baskets and every order. **Research**: the committed in-sample VIX-quintile table and every
 figure from the note, which do not move when the paper book trades. **Replay**: run or reset a
-past session and ask for the Gemini briefing. The sidebar holds the kill switch. It reads the
-store and never submits an order of its own.
+past session and ask for the Gemini briefing. **8-K puts**: the separate repurchase-filing
+study, in-sample and out-of-sample, read from the committed JSON. It does not change the
+gap-fade book. The sidebar holds the kill switch. The page reads the store and never submits
+an order of its own.
 
 Daily cycle (all times ET, each step idempotent and audited in the store):
 
