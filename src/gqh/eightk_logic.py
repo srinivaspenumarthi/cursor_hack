@@ -70,9 +70,23 @@ def strike_from_prior(prior_close: float, otm: float) -> float:
     return float(max(1, round(prior_close * (1.0 - otm))))
 
 
+_INDEX_CACHE: dict[int, pd.DatetimeIndex] = {}
+
+
 def _as_index(sessions) -> pd.DatetimeIndex:
-    idx = pd.DatetimeIndex(pd.to_datetime(sessions)).tz_localize(None).normalize()
-    return pd.DatetimeIndex(idx.unique()).sort_values()
+    """Normalised session index. Cached on object identity: the study passes one index through every rule."""
+    key = id(sessions)
+    hit = _INDEX_CACHE.get(key)
+    if hit is not None:
+        return hit
+    idx = pd.DatetimeIndex(pd.to_datetime(sessions))
+    if idx.tz is not None:
+        idx = idx.tz_localize(None)
+    idx = pd.DatetimeIndex(idx.normalize().unique()).sort_values()
+    if len(_INDEX_CACHE) > 8:
+        _INDEX_CACHE.clear()
+    _INDEX_CACHE[key] = idx
+    return idx
 
 
 def next_session(day, sessions, strict: bool = True) -> pd.Timestamp:
