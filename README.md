@@ -2,6 +2,8 @@
 
 Gator Quant Hacks 2026 · Track 03 Systematic Trading · quant note + reproducible code.
 
+**Public repository:** https://github.com/srinivaspenumarthi/cursor_hack
+
 **Question.** Short-term reversal — being the counterparty to someone who must trade now —
 is the return to providing liquidity. If so, the premium should be largest when the capital
 of liquidity providers is scarce, i.e. when VIX is high. We pre-registered that hypothesis
@@ -42,6 +44,8 @@ tens of millions of capacity). Full argument in [`note/quant_note.pdf`](note/qua
 ## Reproduce everything (one command)
 
 ```bash
+git clone https://github.com/srinivaspenumarthi/cursor_hack.git
+cd cursor_hack
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python run_all.py --oos                                 # downloads data, runs IS + OOS for both modules, writes results/
