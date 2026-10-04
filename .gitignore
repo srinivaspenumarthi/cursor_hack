@@ -11,4 +11,5 @@ live/state/
 live/KILL
 .massive_cache/
 *.mp3
+!filing_edge/docs/*.mp3
 assets/

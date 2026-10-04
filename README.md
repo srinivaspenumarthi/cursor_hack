@@ -1,8 +1,17 @@
 # Paid to Hold the Bag: Liquidity Provision Is a High-VIX Premium
 
-Gator Quant Hacks 2026 · Track 03 Systematic Trading · quant note + reproducible code.
+Gator Quant Hacks 2026 · Track 03 Systematic Trading + Massive · one repository.
 
 **Public repository:** https://github.com/srinivaspenumarthi/cursor_hack
+
+This is the only repo to submit. It holds two finished studies. Their numbers are not averaged and neither 2026 window was rerun to produce this copy.
+
+| Track | Where | Graded result |
+|---|---|---|
+| Systematic trading | this directory | [`note/quant_note.pdf`](note/quant_note.pdf). Liquidity premium rises with lagged VIX. Net Sharpe about 0.4 constant; gated gap fade +0.12 in-sample and +0.24 held out. `python run_all.py --oos` |
+| Massive 8-K | [`filing_edge/`](filing_edge/) | [`filing_edge/submission/Massive_Research_Note.pdf`](filing_edge/submission/Massive_Research_Note.pdf) (2 pages) and [`filing_edge/submission/Systematic_Trading_Note.pdf`](filing_edge/submission/Systematic_Trading_Note.pdf) (5 pages). Cash-secured puts after buyback filings, NBBO quotes, funded account. Development −186 bps. Held-out account lost $796 on $1 million. Decision: do not trade. |
+
+The daily-bar 8-K study in this directory (`HYPOTHESIS_8K.md`, appendix A6) is an earlier failed test on last-trade closes. Filing Edge is the Massive study. Both failures stay in the repo. The saved Massive replay is [srinivaspenumarthi.github.io/hack](https://srinivaspenumarthi.github.io/hack/), and the same pages are in `filing_edge/docs/`.
 
 **Question.** Short-term reversal — being the counterparty to someone who must trade now —
 is the return to providing liquidity. If so, the premium should be largest when the capital
@@ -263,6 +272,9 @@ results/                 committed outputs so judges can compare against the not
   54 variants into the headline was fixed and recomputed from the cached bars *before* that
   commit; the discarded pass was never the recorded result. Out of sample was then run
   **once**, 01:55 UTC, and committed 01:57 UTC (`f66c2d9`). The program refuses a second pass.
+  That study uses daily last trades. The Massive study with NBBO quotes is `filing_edge/`,
+  copied in with its development and held-out reports already written. Copying it did not
+  reprice either window.
 
 ## Team
 
