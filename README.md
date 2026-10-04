@@ -65,15 +65,32 @@ Other commands:
 python run_all.py                 # in-sample only (what we ran while developing; OOS stays locked)
 python run_all.py --skip-module-b # Module A only (no yfinance needed)
 python today.py                   # operational view: latest VIX, Module B gate, expected premium vs toll, Module A sizing
-python -m pytest -q               # 30 tests: no lookahead, point-in-time universe, lagged state variables, cost accounting, paper fills & risk
+python -m pytest -q               # lookahead, point-in-time universe, costs, paper fills, and the 8-K entry clock
 cd src && python -m gqh.capacity  # Module A capacity table (square-root impact model)
 python note/build_pdf.py          # rebuild note/quant_note.pdf from note/quant_note.md (needs Chrome/Chromium)
 ```
 
-No API keys. Data is downloaded from public sources at run time and cached in `data/raw/`
-and `data/processed/` (git-ignored, per the track rule on not committing raw data). The
-only committed data file is `data/sp500_constituents.csv`, a 503-row snapshot of the
-Wikipedia constituent list that defines Module B's universe.
+The liquidity study above does not use API keys. A second, separate study — cash-secured
+puts after repurchase 8-Ks — does. It is specified in `HYPOTHESIS_8K.md` and does not
+recompute the liquidity out-of-sample window.
+
+```bash
+pip install -r requirements.txt          # adds dotenv, psycopg, databento, pypdf
+cp .env.example .env                     # MASSIVE_API_KEY, DATABENTO_API_KEY, DATABASE_URL
+python run_eightk.py --start 2023-01-01 --end 2025-12-31
+python run_eightk.py --start 2026-01-01 --end 2026-08-31   # once, after the in-sample commit
+```
+
+The second command refuses to run if `results/eightk_out_of_sample.json` already exists,
+and either command refuses a window that crosses 2026-01-01. Outputs:
+`results/eightk_in_sample.json`, `results/eightk_horizons_is.csv`, `results/eightk_variant_grid.csv`
+(54 variants, in-sample only), `results/figures/eightk_equity_is.png`, and the same names with
+`_oos` after the single out-of-sample run. Gemini writes `results/eightk_briefing.txt` from
+those numbers. ElevenLabs writes an mp3 only when `ELEVENLABS_API_KEY` is set.
+
+Raw bars and filings are cached in `data/raw/` and `data/processed/` (git-ignored; no API
+keys and no licensed bars are committed). The only committed market file for the liquidity
+study is `data/sp500_constituents.csv`, a 503-row snapshot of the Wikipedia constituent list.
 
 ## Data (all public, all cited in the note)
 
@@ -82,6 +99,10 @@ Wikipedia constituent list that defines Module B's universe.
 | Daily Short-Term Reversal factor `ST_Rev`; daily 6 portfolios formed on size and prior (−20,−1) return; Fama–French 5 factors; momentum factor | [Kenneth R. French Data Library](https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html) (CRSP-based, through 2026-08) |
 | CBOE VIX close (`VIXCLS`); CBOE 3-month VIX (`VXVCLS`, from 2007-12) | [FRED, Federal Reserve Bank of St. Louis](https://fred.stlouisfed.org/series/VIXCLS) |
 | Daily adjusted open/close, current S&P 500 constituents | Yahoo Finance via [`yfinance`](https://github.com/ranaroussi/yfinance); constituent list and index-addition dates from [Wikipedia](https://en.wikipedia.org/wiki/List_of_S%26P_500_companies), snapshot 2026-10-03 |
+| 8-K study: 2022 dollar volume, stock bars, option daily bars | [Massive](https://massive.com) grouped daily and ticker aggregates. The filings endpoint ignores `cik` / `ticker` / `filing_date` filters, so it is not used for discovery |
+| 8-K study: repurchase filings and acceptance timestamps | SEC full-text index (`efts.sec.gov`) and submissions JSON (`data.sec.gov`), public, no key |
+| 8-K study: option bars Massive does not have | [Databento](https://databento.com) OPRA.PILLAR `ohlcv-1d`, one OCC contract per call, $2/call and $40 study cap. Parent `*.OPT` streams are not requested |
+| 8-K study: filing and bar store | TigerData (Timescale) tables `eightk_filings`, `eightk_option_bars` when `DATABASE_URL` is set. Disk cache is the fallback |
 
 Samples: A 1990-01-02 → 2026-08-31; B 2005-01-03 → 2026-08-31. In-sample to 2024-08-31 for
 both; **out-of-sample 2024-09-01 → 2026-08-31** (the track's "most recent 20 % or 2 years,
@@ -165,7 +186,9 @@ the research pipeline is unaffected; without `MASSIVE_API_KEY` the live layer do
 HYPOTHESIS.md            Module A: pre-registered hypothesis, rule, cost model, kill criteria (first commit)
 HYPOTHESIS_B.md          Module B: pre-registered hypothesis, universe, rule, cost model, kill criteria
 HYPOTHESIS_C.md          Module C: pre-registered decomposition (VRP vs realised variance), rules, kill criteria
-run_all.py               reproduces the note: python run_all.py --oos
+HYPOTHESIS_8K.md         8-K puts: pre-registered before any filing or option bar was stored
+run_all.py               reproduces the liquidity note: python run_all.py --oos
+run_eightk.py            8-K study: python run_eightk.py --start YYYY-MM-DD --end YYYY-MM-DD
 today.py                 daily state check from the cached data
 requirements.txt
 data/download.py         French + FRED (cached, git-ignored)
@@ -182,6 +205,8 @@ src/gqh/
   pricing.py             Module C: VRP / RV / term-structure states, double sorts, rule comparison on all books, single OOS run
   capacity.py            square-root-impact capacity model
   plots.py, report*.py   figures and results/REPORT*.md
+  eightk_logic.py        8-K rules: entry clock, strike, expiry, haircut, paired test (no network)
+  eightk_pull.py         Massive + SEC + Databento pulls, TigerData writes, disk cache
 live/                    paper/live trading layer: feeds, signal, risk, broker, store, scheduler, monitor (python -m live)
 tests/                   pytest: no lookahead, point-in-time membership, cost accounting, split rule; live-layer fills/risk/flatness
 note/                    quant_note.md → quant_note.pdf (build_pdf.py)

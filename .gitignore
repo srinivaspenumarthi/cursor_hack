@@ -9,3 +9,6 @@ data/processed/
 note/quant_note.html
 live/state/
 live/KILL
+.massive_cache/
+*.mp3
+assets/
